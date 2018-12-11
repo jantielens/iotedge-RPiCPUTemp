@@ -9,6 +9,7 @@ namespace rpicputemp
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Azure.Devices.Client;
+    using Microsoft.Extensions.Configuration;
 
     class Program
     {
@@ -41,6 +42,15 @@ namespace rpicputemp
         /// </summary>
         static async Task Init()
         {
+
+            IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("config/appsettings.json", optional: true)
+                .AddEnvironmentVariables()
+                .Build();
+
+            int delay = configuration.GetValue("Delay", 5000);
+
             AmqpTransportSettings amqpSetting = new AmqpTransportSettings(TransportType.Amqp_Tcp_Only);
             ITransportSettings[] settings = { amqpSetting };
 
@@ -53,7 +63,7 @@ namespace rpicputemp
             await ioTHubModuleClient.SetInputMessageHandlerAsync("input1", PipeMessage, ioTHubModuleClient);
 
             // Start sending messages
-            await SendTempMessages(ioTHubModuleClient);
+            await SendTempMessages(ioTHubModuleClient, delay);
         }
 
         /// <summary>
@@ -88,9 +98,9 @@ namespace rpicputemp
             return MessageResponse.Completed;
         }
 
-        static async Task SendTempMessages(ModuleClient moduleClient)
+        static async Task SendTempMessages(ModuleClient moduleClient, int delay)
         {
-            Console.WriteLine("Start sending messages.");
+            Console.WriteLine($"Start sending messages with a delay of {delay}.");
             int i = 0;
             while (true)
             {
@@ -115,7 +125,7 @@ namespace rpicputemp
                     Console.WriteLine(ex);
 
                 }
-                await Task.Delay(5000);
+                await Task.Delay(delay);
             }
         }
 
